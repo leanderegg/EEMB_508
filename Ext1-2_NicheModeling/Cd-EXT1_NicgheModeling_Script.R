@@ -52,7 +52,7 @@ install.packages("tmaptools")
 
 # 'load' installed packages so you have access to their functions
 library(dismo)
-#library(maptools)
+library(maptools)
 library(rgdal)
 library(raster)
 library(sp)
@@ -223,10 +223,10 @@ points(bio_1~bio_12
 
 
 #### .. choose 2 climate variables to plot ####
-v1 <- "bio_2" # the variable you want
-v1name <- "diurnal T range" # it's actual meaning (for the axis)
-v2 <- "bio_3"
-v2name <- "Isothermy"
+v1 <- "bio_6" # the variable you want
+v1name <- "Min T of coldest Month" # it's actual meaning (for the axis)
+v2 <- "bio_12"
+v2name <- "precip"
 
 plot(get(v1)~get(v2) # formula of the variables we're plotting
      , data=background_clim # data where to find those variables
@@ -237,8 +237,11 @@ plot(get(v1)~get(v2) # formula of the variables we're plotting
 points(get(v1)~get(v2)
        , data=qudo_clim
        , pch=16
-       , col=blueoak)
-
+       , col=blueoak.transp)
+points(get(v1)~get(v2)
+       , data=quke_clim
+       , pch=16
+       , col=blackoak.transp)
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ####### Q1: Limits to the niche ############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

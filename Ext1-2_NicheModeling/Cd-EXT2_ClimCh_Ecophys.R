@@ -32,7 +32,7 @@
 
 # 'load' installed packages so you have access to their functions
 library(dismo)
-#library(maptools)
+library(maptools)
 library(rgdal)
 library(raster)
 library(sp)
@@ -177,13 +177,15 @@ all.equal(names(bio_fut_CA), names(bio_curr_CA))
 # you can do 'raster math' just like normal math. as long as the rasters are in the same resolution and domain, things work per cell
 tchange <- bio_fut_CA[[1]] - bio_curr_CA[[1]]
 
+pchange <- bio_fut_CA[[12]] - bio_curr_CA[[12]]
 
 plot(tchange)
   # awww shit. Things get HOT in this scenario in this model...
-
+plot(pchange)
+  # double shit. 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-############## Q1: What do you notice about the spatial pattern of MAT change? ###############
+############## Q1: What do you notice about the spatial pattern of MAT & MAP change? ###############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -241,6 +243,8 @@ points(bio_1~bio_12
 
 
 
+
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ########## Step 2, project geographic shifts in suitable habitat with our CEM ######### 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -255,6 +259,8 @@ qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")]
 bc.model <- bioclim(x = bio_curr_CA, qudo %>% select(decimalLongitude, decimalLatitude))
 # note, we're using the select() command with %>% 'piping' from the 'tidyverse' data wrangling set of packages
 # details about how this model is constructed can be found with ?bioclim
+
+
 
 ### . Predict suitable habitat in the domain ####
 qudo_pred <- dismo::predict(object=bc.model
@@ -309,7 +315,12 @@ tm_shape(qudo_change)+
 
 
 
-
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+############## Q4: What do you think the mechanisms controlling Q. douglasii are? ###############
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# based on our exploration of the Q. douglasii climate niche last week, which physiological mechanisms
+# do you think constrain the fundamental niche, and what climatic changes will therefore cause range shifts,
+# particularly range contractions?
 
 
 
@@ -319,6 +330,12 @@ tm_shape(qudo_change)+
 
 # now we're going to pull in some of my data on blue oak water stress.
 # let's see how it informs our predictions about blue oak range contractions
+
+
+
+
+
+
 
 
 
