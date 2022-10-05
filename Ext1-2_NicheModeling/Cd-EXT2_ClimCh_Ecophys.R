@@ -97,7 +97,7 @@ geographic.extent <- extent(x = c(min.lon, max.lon, min.lat, max.lat))
 
 bio_curr <- raster::stack(worldclim_global(var = "bio"
                                            , res=2.5
-                                           , path="Ext1_NicheModeling/"))
+                                           , path="Ext1-2_NicheModeling/"))
 # We're downloading "WorldClim" global data, with three arguements:
 # - var = "bio" tells R that we want the 16 "bioclim" variables, which are temp, precip, and many combos thereof
 #         you can see what these variables actually mean here: https://www.worldclim.org/data/bioclim.html
@@ -136,7 +136,7 @@ bio_fut <- raster::stack( cmip6_world(model = "GFDL-ESM4"
                        , var= "bioc"
                        , ssp = 370
                        , time = "2061-2080"
-                       , path = "Ext1_NicheModeling/"))
+                       , path = "Ext1-2_NicheModeling/"))
 
 # specifically, we're downloading:
 # - model output from only one of the many climate models, the NOAA earth system model run by the Geophysical Fluid Dynamics Laboratory
@@ -172,6 +172,23 @@ all.equal(names(bio_fut_CA), names(bio_curr_CA))
   # yay!
 
 
+
+
+#__________________________________________________________________________
+###### ^^ RUN BEFORE CLASS ^^ ################################################
+#__________________________________________________________________________
+
+
+
+
+
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+###### STEP 2: Look at projected changes in climate and oak distribution ############
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 #### . Look at how temps change in future #######
 
 # you can do 'raster math' just like normal math. as long as the rasters are in the same resolution and domain, things work per cell
@@ -191,6 +208,10 @@ plot(pchange)
 
 
 
+#### . Now let's look in climate space rather than geographic space #######
+
+
+### (stuff we already did in last class)
 #### . Extract the climate data for all of our species occurrences: ####
 qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
 # note, we had to select Longitude and then Latitude, because R expects x, then y
@@ -211,7 +232,8 @@ background_clim <- data.frame(extract(bio_curr_CA, background))
 background_fut <- data.frame(extract(bio_fut_CA, background))
 
 
-### . Visualize how climate is changing across the domain
+
+###### . Visualize how climate is changing across the domain ####
 plot(bio_1~bio_12 # formula of the variables we're plotting
      , data=background_clim # data where to find those variables
      , xlab="Mean Annual Precip (mm)" # x axis label
@@ -254,7 +276,6 @@ points(bio_1~bio_12
 
 
 ### . Build a species distribution model ####
-qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
 
 bc.model <- bioclim(x = bio_curr_CA, qudo %>% select(decimalLongitude, decimalLatitude))
 # note, we're using the select() command with %>% 'piping' from the 'tidyverse' data wrangling set of packages
@@ -268,9 +289,14 @@ qudo_pred <- dismo::predict(object=bc.model
                             , ext= geographic.extent)
 # Note: the dismo::predict bit is to tell R to use the predict() function from the dismo package. Cause there are many predict() functions from many different packages, and whatever package was loaded last usually trumps all the others
 
+#____________________________________________________________________________
+### . NOW Le'ts predict suitable habitat in 2080! #####################
+
 qudo_fut <- dismo::predict(object=bc.model
                            , x=bio_fut_CA
                            , ext= geographic.extent)
+
+### CODING QUESTIONS: What did we change and why does this simple function predict future blue oak disttributions?
 
 ### . Plot our model predictions ####
 plot(wrld_simpl, 
@@ -295,7 +321,8 @@ predsfig <- tm_shape(qudo_fut)+
 predsfig # plot the figure
 
 
-#### . Map change in suitability ####
+#_____________________________________________________________
+######## . Map change in suitability ##########
 
 qudo_change <- qudo_fut - qudo_pred
   # do some quick raster math, since predictions are 0-1 (0 meaning it doesn't live there, 1 meaning THIS IS PARADISE),
@@ -315,12 +342,18 @@ tm_shape(qudo_change)+
 
 
 
+
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ############## Q4: What do you think the mechanisms controlling Q. douglasii are? ###############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # based on our exploration of the Q. douglasii climate niche last week, which physiological mechanisms
 # do you think constrain the fundamental niche, and what climatic changes will therefore cause range shifts,
 # particularly range contractions?
+
+
+
+
 
 
 
@@ -331,53 +364,144 @@ tm_shape(qudo_change)+
 # now we're going to pull in some of my data on blue oak water stress.
 # let's see how it informs our predictions about blue oak range contractions
 
+fielddat <- read.csv("Ext1-2_NicheModeling/BlueOak_WP_and_AlAs_20190528.csv", header=T)
+# This is tree-level average data from a fall 2018 measurement campaign
+# we drove around the state and measured plat water potentials and some leaf traits
+# at the end of the growing season (late Sept/ early Oct)
+# when the soil moisture was at its lowest.
 
 
+#_________________________________________________________________________
+####### First things first (always), let's check out the data frame: #
+dim(fielddat)
+  # 87 indivdiual trees
+xtabs(~SiteName, fielddat)
+  # 15 sites
+mean(xtabs(~SiteName, fielddat))
+  # 5-6 trees per site
+
+summary(fielddat)
+  # we've got Site/SiteName and Tree character columns (could be turned to factors)
+  # then we've got
+  # - MD_WP_Mpa (midday water potentials, in MPa) --> this is the maximum water stress the plant is experiencing
+  # - PD_WP_Mpa (predawn water potentials, in MPa) --> this is how dry the soil is (when the tree is equilibrated with the soil at night)
+# NOTE: more negative numbers for water potentials == drier/more drought stressed
+  # - mAl_As --> tree mean Leaf Area (Al) to sapwood area (As) ratio (cm2/mm2). a metric of allocation
+  # - mLMA --> tree mean Leaf Mass per Area (g/cm2)
+  # - bunch of site stuff
 
 
-
-
-
-
-
-
-
-
-
-
-#______________________________________________________
-### INTERACTIVE PLOTTING!
-# even better than base plot, we can use tmap to interactively zoom in and out!
-
-###  use tmap to make interactive plots
-tmap_mode("view") # if we set this to "view" rather than "plot", we can make pretty maps that we can zoom around
-
-# make a figure of blue oak distribution on Mean Annual Temp background
-qudofig <- tm_shape(bio_curr_CA[[1]])+
-  tm_raster(style= "pretty",
-            title="MAT")+
-  tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% select(decimalLongitude, decimalLatitude))) + 
-  tm_dots()
-
-qudofig # plot the figure
-
-# make a figure of blue oak on our predicted suitability
-predsfig <- tm_shape(qudo_pred)+
+# let's see where these plots are (using our CEM as the background)
+tm_shape(qudo_pred)+
   tm_raster(style= "pretty",
             title="Suitable Habitat")+
   tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% select(decimalLongitude, decimalLatitude))) + 
+  tm_shape(SpatialPoints(fielddat %>% select(Lon, Lat))) + 
   tm_dots(col = blueoak)
 
-predsfig # plot the figure
+
+####### . extract some climate data for these locations: 
+fielddat.clim <- extract(bio_curr_CA, fielddat[,c("Lon","Lat")])
+  # this extracts all of our climate data (Bio_1 through Bio_19)
+  # and makes a new dataframe
+
+fielddat <- cbind(fielddat, fielddat.clim)
+  # this 'column binds' our climate data to our field data to make one large data frame
 
 
 
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-########### Q2: Why might blue oak not fill all of it's 'suitable habitat'? #########
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#### CODING CHALLENGE ############################################
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+  # Can you use the example code below to find a climate variable that predicts blue oak water stress?
+  # i.e. use PD_WP_Mpa as your y variable and a climate predictor as your x
+
+### Example:
+  # Mean Annual Temp does not predict water stress...
+plot(PD_WP_Mpa~bio_1, fielddat)
+
+# do some statistics to confirm this visual inference
+  # fit a linear model with lm()
+mod1 <- lm(PD_WP_Mpa~bio_1, fielddat)
+  # look at the output
+summary(mod1)
+
+# add the prediction to our plot
+abline(mod1)
+
+
+
+####### ADVANCED CHALLENGE: ###########
+# Can you make the trend line solid if the relationship is statistically significant (p<0.05)
+# and dotted if it is non-significant?
+
+
+
+
+
+#___________________________________________________________________________
+######## . Does our Climate Envelope Model help explain water stress?
+#___________________________________________________________________________
+
+
+# First extract our 'predicted suitability' for each of our field locations
+fielddat$suit_curr <- extract(qudo_pred, fielddat[,c("Lon","Lat")])
+fielddat$suit_fut <- extract(qudo_fut, fielddat[,c("Lon","Lat")])
+
+
+
+# Now let's see whether the suitability predicts water stress
+plot(PD_WP_Mpa~suit_curr, fielddat)
+mod1 <- lm(PD_WP_Mpa~suit_curr, fielddat)
+# add the trend line
+abline(mod1, lty = ifelse(test=summary(mod1)$coefficients[2,4]<0.05,yes = 1,no = 2))
+mtext(text=paste("p = ",summary(mod1)$coefficients[2,4]),side = 3)
+
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#### Q5: What does this figure mean?? ############################################
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# And what does it imply about the putative mechanisms under the hood of our CEM?
+
+
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#### Q6: What else should we think about to try to predict water stress in blue oaks? ############################################
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############ Advanced Coding Solution (one of many) #############3
+ # make the plot
+plot(PD_WP_Mpa~bio_1, fielddat)
+ # fit the model
+mod1 <- lm(PD_WP_Mpa~bio_1, fielddat)
+ # add the trend line
+abline(mod1, lty = ifelse(test=summary(mod1)$coefficients[2,4]<0.05,yes = 1,no = 2))
+
+
+
+
+
+
+
 
 
 
