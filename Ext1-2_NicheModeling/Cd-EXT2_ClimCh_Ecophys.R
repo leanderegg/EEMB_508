@@ -46,7 +46,7 @@ library(tmaptools)
 
 
 
-
+version <- "20221006"
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -64,9 +64,13 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
                      , hasGeospatialIssue = F
                      , stateProvince = "California"
                      , limit=10000)
+
+
 # only grabbing occurrences with lat-lon and no location issues, in CA (because anything outside of CA is probably planted)
 qudo.raw <- occ_qudo$data # just select the data from that big list object
 nrow(qudo.raw) # this many records were downloaded
+
+# write.csv(qudo.raw, paste("blue_oak_occurence_data",version,".csv"))
 
 ## Clean the data
 # a REALLY critical step with occurrence data
