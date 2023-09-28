@@ -3,8 +3,8 @@
 #############################################
 
 # Extension activity for UCSB EEMB 508: Intro to Ecology
-# Created with R version 4.2.3 (2023-03-15) -- "Shortstop Beagle"
-# run with Rstudio version: RStudio 2022.07.0+548 "Spotted Wakerobin" 
+# Run with R version 4.2.3 (2023-03-15) -- "Shortstop Beagle"
+# Run with Rstudio version: RStudio 2022.07.0+548 "Spotted Wakerobin" 
 
 # Extension 1 Goals: Niches get stitches
 # 1) Download species occurrence data

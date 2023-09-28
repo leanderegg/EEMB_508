@@ -3,7 +3,7 @@
 #############################################
 
 # Extension activity for UCSB EEMB 508: Intro to Ecology
-# Created with R version:4.1.2 (2021-11-01) "Bird Hippie"
+# Run with R version 4.2.3 (2023-03-15) -- "Shortstop Beagle"
 # run with Rstudio version: RStudio 2022.07.0+548 "Spotted Wakerobin" 
 
 
@@ -46,7 +46,7 @@ library(tmaptools)
 
 
 
-version <- "20221006"
+version <- "202310012" # set a version for saving files. Versioning your s&!? will save you many headaches in the future
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -83,7 +83,8 @@ qudo<- qudo.raw[!dups,] # remove the duplicates using the ! (NOT) boolian functi
 
 
 # download world outlines #
-data("wrld_simpl") # download a simple world map for visualization
+#data("wrld_simpl") # download a simple world map for visualization
+wrld_simpl <- ne_coastline() # download a simple world map for visualization (frome the Naturalearth project)
 
 # Determine geographic extent of our data (and pad a little)
 max.lat <- ceiling(max(qudo$decimalLatitude) + 3)
@@ -101,7 +102,7 @@ geographic.extent <- extent(x = c(min.lon, max.lon, min.lat, max.lat))
 
 bio_curr <- raster::stack(worldclim_global(var = "bio"
                                            , res=2.5
-                                           , path="Ext1-2_NicheModeling/"))
+                                           , path="Ext1-2_NicheModeling/data/climate/"))
 # We're downloading "WorldClim" global data, with three arguements:
 # - var = "bio" tells R that we want the 16 "bioclim" variables, which are temp, precip, and many combos thereof
 #         you can see what these variables actually mean here: https://www.worldclim.org/data/bioclim.html
@@ -140,7 +141,7 @@ bio_fut <- raster::stack( cmip6_world(model = "GFDL-ESM4"
                        , var= "bioc"
                        , ssp = 370
                        , time = "2061-2080"
-                       , path = "Ext1-2_NicheModeling/"))
+                       , path = "Ext1-2_NicheModeling/data/climate/"))
 
 # specifically, we're downloading:
 # - model output from only one of the many climate models, the NOAA earth system model run by the Geophysical Fluid Dynamics Laboratory
@@ -164,11 +165,11 @@ names(bio_fut_CA)
 names(bio_curr_CA)
 
 # two ways of fixing this:
-# 1) since they have the same dimensions, we just use the _curr names for _fut
+# 1) since they have the same dimensions and are in exactly the same order, we just use the _curr names for _fut
 names(bio_fut_CA) <- names(bio_curr_CA)
 
-# 2) we replace the "wc2" string with "bio" string
-names(bio_fut_CA) <- str_replace(string=names(bio_fut_CA),pattern = "wc2", replacement = "bio") 
+# 2) we replace the "wc2..." string with "bio" string
+names(bio_fut_CA) <- str_replace(string=names(bio_fut_CA),pattern = "wc2.1_2.5m_bioc_GFDL.ESM4_ssp370_2061.2080", replacement = "bio") 
   # note: this will run and just not do anything even if you've already fixed the names with option 1)
 
 # double check that this worked.
@@ -204,6 +205,8 @@ plot(tchange)
   # awww shit. Things get HOT in this scenario in this model...
 plot(pchange)
   # double shit. 
+
+
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ############## Q1: What do you notice about the spatial pattern of MAT & MAP change? ###############
@@ -307,7 +310,7 @@ plot(wrld_simpl,
      xlim = c(min.lon, max.lon),
      ylim = c(min.lat, max.lat),
      axes = TRUE, 
-     col = "grey95")
+     col = "grey65")
 # Add model probabilities
 plot(qudo_pred, add = TRUE)
 
@@ -348,6 +351,7 @@ tm_shape(qudo_change)+
 
 
 
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ############## Q4: What do you think the mechanisms controlling Q. douglasii are? ###############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -368,7 +372,7 @@ tm_shape(qudo_change)+
 # now we're going to pull in some of my data on blue oak water stress.
 # let's see how it informs our predictions about blue oak range contractions
 
-fielddat <- read.csv("Ext1-2_NicheModeling/BlueOak_WP_and_AlAs_20190528.csv", header=T)
+fielddat <- read.csv("Ext1-2_NicheModeling/data/BlueOak_WP_and_AlAs_20190528.csv", header=T)
 # This is tree-level average data from a fall 2018 measurement campaign
 # we drove around the state and measured plat water potentials and some leaf traits
 # at the end of the growing season (late Sept/ early Oct)
@@ -426,7 +430,7 @@ fielddat <- cbind(fielddat, fielddat.clim)
 
 ### Example:
   # Mean Annual Temp does not predict water stress...
-plot(PD_WP_Mpa~bio_1, fielddat)
+plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)")
 
 # do some statistics to confirm this visual inference
   # fit a linear model with lm()
@@ -437,8 +441,12 @@ summary(mod1)
 # add the prediction to our plot
 abline(mod1)
 
-
-
+# add a p-value to our plot 
+mtext(text=paste("R^2=", round(summary(mod1)$coefficients[2,4], 2)), side = 3, adj = 0)
+  # note: in the summary object for our model, the P-value is the t-test result in the 4th column, 2nd row (the slope of bio_1) of the $coefficients part of the list
+  #       we rounded it to two decimal places for easy viewing, and then paste()'ed it into something easy to read
+    
+    
 ####### ADVANCED CHALLENGE: ###########
 # Can you make the trend line solid if the relationship is statistically significant (p<0.05)
 # and dotted if it is non-significant?
@@ -467,6 +475,8 @@ mtext(text=paste("p = ",summary(mod1)$coefficients[2,4]),side = 3)
 
 
 
+
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #### Q5: What does this figure mean?? ############################################
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -475,9 +485,18 @@ mtext(text=paste("p = ",summary(mod1)$coefficients[2,4]),side = 3)
 
 
 
+
+
+
+
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #### Q6: What else should we think about to try to predict water stress in blue oaks? ############################################
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
 
 
 
