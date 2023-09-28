@@ -3,7 +3,7 @@
 #############################################
 
 # Extension activity for UCSB EEMB 508: Intro to Ecology
-# Created with R version:4.1.2 (2021-11-01) "Bird Hippie"
+# Created with R version 4.2.3 (2023-03-15) -- "Shortstop Beagle"
 # run with Rstudio version: RStudio 2022.07.0+548 "Spotted Wakerobin" 
 
 # Extension 1 Goals: Niches get stitches
@@ -41,6 +41,7 @@ install.packages("dismo") # note: say "no" if it asks you to install things that
 install.packages("maptools")
 install.packages("rgdal")
 install.packages("raster")
+install.packages("sf")
 install.packages("sp")
 install.packages("rgbif")
 install.packages("tidyverse")
@@ -48,7 +49,8 @@ install.packages("geodata")
 install.packages("RColorBrewer")
 install.packages("tmap")
 install.packages("tmaptools")
-
+install.packages("rnaturalearth")
+install.packages("rnaturalearthdata")
 
 # 'load' installed packages so you have access to their functions
 library(dismo)
@@ -62,6 +64,7 @@ library(geodata)
 library(RColorBrewer)
 library(tmap)
 library(tmaptools)
+library(rnaturalearth)
 # note: you may get warning messages related to maptools and rgdal. just ignore them unless it says "ERROR"
 
 
@@ -72,6 +75,11 @@ library(tmaptools)
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #### . download occurrence records from GBIF for blue oak, Quercus douglasii ####
+  # The Global Biodiversity Information Facility (https://www.gbif.org/) is a very powerful source for species occurance data
+  # It combines a bunch of data sources (herbaria/museum specimens, iNaturalist, etc.)
+  # the {rgbif} package provides a really slick way to download data through the GBIF API 
+
+# use the occ_data() call from {rgbif} to download data for blue oak (Quercus douglasii)
 occ_qudo <- occ_data(scientificName = "Quercus douglasii"
                      , hasCoordinate = T
                      , hasGeospatialIssue = F
@@ -79,22 +87,24 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
                      , limit=10000)
   # only grabbing occurrences with lat-lon and no location issues, in CA (because anything outside of CA is probably planted)
 qudo.raw <- occ_qudo$data # just select the data from that big list object
-nrow(qudo.raw) # this many records were downloaded
+nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23)
 
 ## Clean the data
-# a REALLY critical step with occurrence data
+# a REALLY critical step with occurrence data. THERE'S A LOT OF BAD DATA OUT THERE.
 # note: we already defacto cleaned a lot of outliers/problems by limiting just to CA records, because we know CA is Q. douglasii's native range
 
 # remove duplicated records
 dups <- duplicated(qudo.raw %>% select(decimalLatitude, decimalLongitude))
 sum(dups) # number of duplicate records (which would incorrectly weight their locations in the model)
+sum(dups)/nrow(qudo.raw)*100 # % of our dataset that were duplicates
 qudo<- qudo.raw[!dups,] # remove the duplicates using the ! (NOT) boolian function
 
 
 
 
 #### . Visualize the data #####
-data("wrld_simpl") # download a simple world map for visualization
+wrld_simpl <- ne_coastline() # download a simple world map for visualization (frome the Naturalearth project)
+
 
 # plot our occurrences
 plot(wrld_simpl)
@@ -116,7 +126,7 @@ plot(wrld_simpl,
      xlim = c(min.lon, max.lon),
      ylim = c(min.lat, max.lat),
      axes = TRUE, 
-     col = "grey95")
+     col = "grey65")
 
 
 # Add the points for individual observation
@@ -126,7 +136,8 @@ points(x = qudo$decimalLongitude,
        pch = 20, 
        cex = 0.75)
 # And draw a little box around the graph
-box()
+# box() # not needed with newer map data
+
 #___________________________________________________
 
 
@@ -145,7 +156,7 @@ box()
 
 bio_curr <- raster::stack(worldclim_global(var = "bio"
                              , res=2.5
-                             , path="Ext1_NicheModeling/"))
+                             , path="Ext1-2_NicheModeling/data/climate/"))
 # We're downloading "WorldClim" global data, with three arguements:
 # - var = "bio" tells R that we want the 16 "bioclim" variables, which are temp, precip, and many combos thereof
 #         you can see what these variables actually mean here: https://www.worldclim.org/data/bioclim.html
@@ -200,6 +211,9 @@ points(background)
 points(qudo$decimalLatitude~qudo$decimalLongitude, col="blue", pch=16)
 
 
+
+
+
 #________________________________________________________________________
 ####### + Visual Assessment ######### 
 #we'll just use the good old ocular detection device, v1 to start out with
@@ -207,6 +221,23 @@ points(qudo$decimalLatitude~qudo$decimalLongitude, col="blue", pch=16)
 # let's make a specific color for blue oak
 blueoak <- brewer.pal("Set1",n=3)[2]
 blueoak.transp <- paste0(blueoak,"44") # and a transparent version
+
+
+
+#### .. plot blue oak's climate niche (mean T and mean P) ####
+plot(bio_1~bio_12 # formula of y~x using the variables we want to plot
+     , data = qudo_clim # data where those variables can be found
+     , xlab = "Mean Annual Precip (mm)" # an informative x label (with units!)
+     , ylab = "Mean Annual Temp (degrees C)" # an informative y label
+     , pch =16 # point type (16 = filled circle)
+     , col=blueoak.transp # set the color of our oaks to our bespoke transparent blue
+     )
+
+
+
+#__________ Question: Where to the limits to blue oak seem to be in climate space? ________________
+
+
 
 
 #### .. plot the background climate for Mean T and Mean P ####
@@ -220,6 +251,11 @@ points(bio_1~bio_12
        , data=qudo_clim
        , pch=16
        , col=blueoak.transp)
+
+
+
+#__________ Question: Does this change your answer to the question above? ________________
+
 
 
 #### .. choose 2 climate variables to plot ####
@@ -238,15 +274,20 @@ points(get(v1)~get(v2)
        , data=qudo_clim
        , pch=16
        , col=blueoak.transp)
-points(get(v1)~get(v2)
-       , data=quke_clim
-       , pch=16
-       , col=blackoak.transp)
+
+
+
+
+
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ####### Q1: Limits to the niche ############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # **What are some hypotheses about the climatic factors that limit blue oaks realized niche?**
+
+
+
 
 
 
@@ -354,13 +395,28 @@ quke<- quke.raw[!dups,] # remove the duplicates using the ! (NOT) boolian functi
 ## Extract the climate data for all of our species occurances:
 quke_clim <- extract(bio_curr_CA, quke[,c("decimalLongitude","decimalLatitude")])
 
-
-
-
 # let's make a specific color for black oak
 blackoak <- brewer.pal("Set1",n=3)[3]
 blackoak.transp <- paste0(blackoak,"11") # and a transparent version
 
+
+
+
+## Now let's look at them in geographic space
+plot(bio_curr_CA[[1]])
+points(decimalLatitude~decimalLongitude
+       , data=qudo
+       , pch=16
+       , col=blueoak.transp)
+points(decimalLatitude~decimalLongitude
+       , data=quke
+       , pch=16
+       , col=blackoak.transp)
+
+
+
+
+## And now in climate space
 # plot the background climate for Mean T and Mean P
 plot(bio_1~bio_12 # formula of the variables we're plotting
      , data=background_clim # data where to find those variables
@@ -382,17 +438,6 @@ legend("topright"
        , col=c("#666666", blueoak, blackoak))
 
 
-
-## And let's look at them in geographic space
-plot(bio_curr_CA[[1]])
-points(decimalLatitude~decimalLongitude
-       , data=qudo
-       , pch=16
-       , col=blueoak.transp)
-points(decimalLatitude~decimalLongitude
-       , data=quke
-       , pch=16
-       , col=blackoak.transp)
 
 
 
