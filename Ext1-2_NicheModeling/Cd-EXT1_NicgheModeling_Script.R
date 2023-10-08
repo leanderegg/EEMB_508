@@ -168,12 +168,30 @@ bio_curr <- raster::stack(worldclim_global(var = "bio"
 
 
 
+
 ### Crop climate data 
 # to the extent of our blue oak records for ease of handling
 bio_curr_CA <- crop(bio_curr, geographic.extent)
+
+# make the names of each layer easier to handle
+names(bio_curr_CA) # they're currently long and unwieldy
+names(bio_curr_CA) <- str_replace(string = names(bio_curr_CA),pattern = "wc2.1_2.5m_", replacement = "")
+  # This cuts out the wc2.... and relplaces it with nothing (""). could also replace with some new text
+
+
+
+
+### in case server is down (has happened before)
+#raster::writeRaster(bio_curr_CA,filename = "Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff",filetype="GTiff", overwrite=T)
+  # This exports the cropped bioclim to a geotiff so I can send it to y'all
+
+# read in the cropped raster brick from my exported geotiff:
+#bio_curr_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff")
+
 # let's also make the names of our variables easier to handle
-names(bio_curr_CA)
-names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"wc2.1_2.5m_","")
+#names(bio_curr_CA) # exporting and importing changed the names so need to rename things
+#names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"Bioclim_clipped", "bio")
+
 
 # quick take a look at the data
 plot(bio_curr_CA) 
