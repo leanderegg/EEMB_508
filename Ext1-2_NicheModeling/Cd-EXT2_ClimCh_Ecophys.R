@@ -46,7 +46,7 @@ library(tmaptools)
 
 
 
-version <- "202310012" # set a version for saving files. Versioning your s&!? will save you many headaches in the future
+version <- "202310012" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -123,6 +123,20 @@ names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"wc2.1_2.5m_","")
 
 # a description of what each of these variables are can be found:
 # https://www.worldclim.org/data/bioclim.html
+
+
+
+
+### in case server is down (has happened before)
+#raster::writeRaster(bio_curr_CA,filename = "Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff",filetype="GTiff", overwrite=T)
+# This exports the cropped bioclim to a geotiff so I can send it to y'all
+
+# read in the cropped raster brick from my exported geotiff:
+#bio_curr_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff")
+
+# let's also make the names of our variables easier to handle
+#names(bio_curr_CA) # exporting and importing changed the names so need to rename things
+#names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"Bioclim_clipped", "bio")
 
 
 
