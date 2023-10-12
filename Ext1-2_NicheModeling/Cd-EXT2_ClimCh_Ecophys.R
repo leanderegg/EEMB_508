@@ -42,6 +42,8 @@ library(geodata)
 library(RColorBrewer)
 library(tmap)
 library(tmaptools)
+library(rnaturalearth)
+library(rnaturalearthdata)
 # note: you may get warning messages related to maptools and rgdal. just ignore them unless it says "ERROR"
 
 
@@ -80,6 +82,11 @@ nrow(qudo.raw) # this many records were downloaded
 dups <- duplicated(qudo.raw %>% select(decimalLatitude, decimalLongitude))
 sum(dups) # number of duplicate records (which would incorrectly weight their locations in the model)
 qudo<- qudo.raw[!dups,] # remove the duplicates using the ! (NOT) boolian function
+
+
+# If you want to export your data version, so this code is perfectly replicable even if new obs get added to GBIF, you could do that
+#write.csv(x = qudo, file = paste0("Ext1-2_NicheModeling/data/", "Quercus_douglasii_gbif_v", version,".csv"))
+  # this makes a file name with an automated versioning based on the name you set above and stores it in the 'data' folder
 
 
 # download world outlines #
@@ -169,6 +176,24 @@ bio_fut <- raster::stack( cmip6_world(model = "GFDL-ESM4"
 # also crop the future climate to CA roughly.
 bio_fut_CA <- crop(bio_fut, geographic.extent)
   # note: I turned this into a "raster brick" just because it was originally in a format that doesn't play well with many of our functions
+
+
+
+
+### in case server is down (has happened before)
+# raster::writeRaster(bio_fut_CA,filename = "Ext1-2_NicheModeling/data/climate/Bioclim_future_clipped.tiff",filetype="GTiff", overwrite=T)
+# This exports the cropped bioclim to a geotiff so I can send it to y'all
+
+# read in the cropped raster brick from my exported geotiff:
+bio_fut_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_future_clipped.tiff")
+
+# let's also make the names of our variables easier to handle
+#names(bio_fut_CA) # exporting and importing changed the names so need to rename things
+#names(bio_fut_CA) <- str_replace(names(bio_curr_CA),"Bioclim_future_clipped", "bio")
+
+
+
+
 
 # take a quick look at the climate projections
 plot(bio_fut_CA)
@@ -485,7 +510,7 @@ plot(PD_WP_Mpa~suit_curr, fielddat)
 mod1 <- lm(PD_WP_Mpa~suit_curr, fielddat)
 # add the trend line
 abline(mod1, lty = ifelse(test=summary(mod1)$coefficients[2,4]<0.05,yes = 1,no = 2))
-mtext(text=paste("p = ",summary(mod1)$coefficients[2,4]),side = 3)
+mtext(text=paste("p = ",round(summary(mod1)$coefficients[2,4],4)),side = 3)
 
 
 
