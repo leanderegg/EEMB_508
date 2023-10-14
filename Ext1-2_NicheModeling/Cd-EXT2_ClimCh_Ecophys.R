@@ -48,7 +48,13 @@ library(rnaturalearthdata)
 
 
 
-version <- "202310012" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
+version <- "20231012" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
+
+
+
+#__________________________________________________________________________
+###### vv RUN BEFORE CLASS vv ################################################
+#__________________________________________________________________________
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -185,7 +191,7 @@ bio_fut_CA <- crop(bio_fut, geographic.extent)
 # This exports the cropped bioclim to a geotiff so I can send it to y'all
 
 # read in the cropped raster brick from my exported geotiff:
-bio_fut_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_future_clipped.tiff")
+# bio_fut_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_future_clipped.tiff")
 
 # let's also make the names of our variables easier to handle
 #names(bio_fut_CA) # exporting and importing changed the names so need to rename things
@@ -298,7 +304,7 @@ blueoak.transp <- paste0(blueoak,"44") # and a transparent version
 points(bio_1~bio_12
        , data=qudo_clim
        , pch=16
-       , col=blueoak)
+       , col=blueoak.transp)
 
 
 
@@ -344,6 +350,7 @@ qudo_fut <- dismo::predict(object=bc.model
 
 ### CODING QUESTIONS: What did we change and why does this simple function predict future blue oak disttributions?
 
+
 ### . Plot our model predictions ####
 plot(wrld_simpl, 
      xlim = c(min.lon, max.lon),
@@ -353,6 +360,13 @@ plot(wrld_simpl,
 # Add model probabilities
 plot(qudo_pred, add = TRUE)
 
+plot(wrld_simpl, 
+     xlim = c(min.lon, max.lon),
+     ylim = c(min.lat, max.lat),
+     axes = TRUE, 
+     col = "grey65")
+
+plot(qudo_fut)
 
 ### . Plot our model predictions with future climate ####
 # make a figure of blue oak on our predicted suitability
@@ -381,10 +395,10 @@ tm_shape(qudo_change)+
   tm_layout(legend.outside = T) 
 
 
-
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ############## Q3: Do you believe these dire predictions? ###############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 
 
@@ -469,7 +483,7 @@ fielddat <- cbind(fielddat, fielddat.clim)
 
 ### Example:
   # Mean Annual Temp does not predict water stress...
-plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)")
+plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
 
 # do some statistics to confirm this visual inference
   # fit a linear model with lm()
@@ -481,7 +495,7 @@ summary(mod1)
 abline(mod1)
 
 # add a p-value to our plot 
-mtext(text=paste("R^2=", round(summary(mod1)$coefficients[2,4], 2)), side = 3, adj = 0)
+mtext(text=paste("p=", round(summary(mod1)$coefficients[2,4], 2)), side = 3, adj = 0)
   # note: in the summary object for our model, the P-value is the t-test result in the 4th column, 2nd row (the slope of bio_1) of the $coefficients part of the list
   #       we rounded it to two decimal places for easy viewing, and then paste()'ed it into something easy to read
     
@@ -489,6 +503,7 @@ mtext(text=paste("R^2=", round(summary(mod1)$coefficients[2,4], 2)), side = 3, a
 ####### ADVANCED CHALLENGE: ###########
 # Can you make the trend line solid if the relationship is statistically significant (p<0.05)
 # and dotted if it is non-significant?
+
 
 
 
@@ -566,6 +581,23 @@ abline(mod1, lty = ifelse(test=summary(mod1)$coefficients[2,4]<0.05,yes = 1,no =
 
 
 
+
+
+
+### previous classes playing around with some hypotheses
+background_tchange <- data.frame(extract(tchange, background))
+background_pchange <- data.frame(extract(pchange, background))
+background_qudochange <- data.frame(extract(qudo_change, background))
+background_qudocurr <- data.frame(extract(qudo_pred, background))
+
+compdata <- data.frame("tchange"=background_tchange[,1],"pchange"=background_pchange[,1], qudochange=background_qudochange[,1], qudo_curr=background_qudocurr[,1])
+
+filtereddata <- compdata[which(compdata$qudo_curr>0.01),]
+
+plot(qudochange~pchange, filtereddata)
+
+
+ggplot(filtereddata, aes(x=pchange, y=qudochange, col=tchange)) + geom_point() + geom_smooth(se=F)
 
 
 
