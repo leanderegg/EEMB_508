@@ -3,8 +3,8 @@
 #############################################
 
 # Extension activity for UCSB EEMB 508: Intro to Ecology
-# Run with R version 4.2.3 (2023-03-15) -- "Shortstop Beagle"
-# Run with Rstudio version: RStudio 2022.07.0+548 "Spotted Wakerobin" 
+# Run with R version 4.3.1 (2023-06-16) -- "Beagle Scouts"
+# Run with Rstudio version: RStudio 2024.04.1+748 
 
 # Extension 1 Goals: Niches get stitches
 # 1) Download species occurrence data
@@ -37,34 +37,43 @@
 ###### Getting started: Install/Load Packages ############
 
 # skip this if you've already installed these packages
+  #spatial packages
+install.packages("terra")
 install.packages("dismo") # note: say "no" if it asks you to install things that need compiling
-install.packages("maptools")
-install.packages("rgdal")
+#install.packages("maptools")
+#install.packages("rgdal")
 install.packages("raster")
 install.packages("sf")
 install.packages("sp")
-install.packages("rgbif")
-install.packages("tidyverse")
-install.packages("geodata")
-install.packages("RColorBrewer")
 install.packages("tmap")
 install.packages("tmaptools")
+install.packages("geodata")
 install.packages("rnaturalearth")
 install.packages("rnaturalearthdata")
+  # other packages
+install.packages("rgbif") #for using GBIF API through R
+install.packages("tidyverse") # data wrangling
+install.packages("RColorBrewer") # nice color palettes
+
 
 # 'load' installed packages so you have access to their functions
-library(dismo)
-library(maptools)
-library(rgdal)
-library(raster)
+
+#library(maptools)
+#library(rgdal)
+
 library(sp)
-library(rgbif)
-library(tidyverse)
-library(geodata)
-library(RColorBrewer)
+
 library(tmap)
 library(tmaptools)
+
+library(dismo)
+library(raster)
+library(geodata)
 library(rnaturalearth)
+
+library(tidyverse)
+library(rgbif)
+library(RColorBrewer)
 # note: you may get warning messages related to maptools and rgdal. just ignore them unless it says "ERROR"
 
 
@@ -87,9 +96,21 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
                      , limit=10000)
   # only grabbing occurrences with lat-lon and no location issues, in CA (because anything outside of CA is probably planted)
 qudo.raw <- occ_qudo$data # just select the data from that big list object
-nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23)
+nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23, 4412 as of 9.24.24)
 
-## Clean the data
+
+# --NOT RUN (versioning): For good versioning/internal reproducibility, it's wise to save a versioned, local copy of the data
+# write.csv(x = qudo.raw[,-grep("network", colnames(qudo.raw))], file = "Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2024-09-24.csv")
+  # note, with newest GBIF call, there are three columns $networkKeys.Length, $networkKeys.Class and $networkKeys.Mode that are lists of some sort
+  # so we had to remove them in order to save as a .csv file
+ 
+# --NOT RUN (if problems): If GBIF server is down, internet sucks, or computers are slow, load old data
+# qudo.raw <- read.csv("Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2024-09-24.csv", header=T)
+
+
+
+
+#### . Clean the data ####
 # a REALLY critical step with occurrence data. THERE'S A LOT OF BAD DATA OUT THERE.
 # note: we already defacto cleaned a lot of outliers/problems by limiting just to CA records, because we know CA is Q. douglasii's native range
 
@@ -103,7 +124,7 @@ qudo<- qudo.raw[!dups,] # remove the duplicates using the ! (NOT) boolian functi
 
 
 #### . Visualize the data #####
-wrld_simpl <- ne_coastline() # download a simple world map for visualization (frome the Naturalearth project)
+wrld_simpl <- ne_coastline(scale = 110, returnclass = "sv") # download a simple world map for visualization (frome the Naturalearth project)
 
 
 # plot our occurrences
@@ -117,8 +138,8 @@ max.lat <- ceiling(max(qudo$decimalLatitude) + 3)
 min.lat <- floor(min(qudo$decimalLatitude) - 3)
 max.lon <- ceiling(max(qudo$decimalLongitude) + 3)
 min.lon <- floor(min(qudo$decimalLongitude) - 3)
-geographic.extent <- extent(x = c(min.lon, max.lon, min.lat, max.lat))
-
+geographic.extent <- raster::extent(x = c(min.lon, max.lon, min.lat, max.lat))
+# Note: I'm calling functions specifically from packages using the [package]::[function] nomenclature, because spatial packages in R just went through a major revamp and shit got complicated
 
 #________________________________________________
 # Plot the world map but zoomed in
@@ -154,9 +175,11 @@ points(x = qudo$decimalLongitude,
 # from the 'WorldClim2' dataset, because it's easy. Other gridded climate data are
 # probably better, depending on your application and location, but you can't beat Worldclim for ease of use.
 
-bio_curr <- raster::stack(worldclim_global(var = "bio"
+bio_curr <- raster::stack(geodata::worldclim_global(var = "bio"
                              , res=2.5
                              , path="Ext1-2_NicheModeling/data/climate/"))
+  
+
 # We're downloading "WorldClim" global data, with three arguements:
 # - var = "bio" tells R that we want the 16 "bioclim" variables, which are temp, precip, and many combos thereof
 #         you can see what these variables actually mean here: https://www.worldclim.org/data/bioclim.html
@@ -181,9 +204,9 @@ names(bio_curr_CA) <- str_replace(string = names(bio_curr_CA),pattern = "wc2.1_2
 
 
 
-### in case server is down (has happened before)
+### --NOT RUN: in case server is down (has happened before)
+# This exports the cropped bioclim to a geotiff so I can send it to y'all
 #raster::writeRaster(bio_curr_CA,filename = "Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff",filetype="GTiff", overwrite=T)
-  # This exports the cropped bioclim to a geotiff so I can send it to y'all
 
 # read in the cropped raster brick from my exported geotiff:
 #bio_curr_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff")
@@ -191,6 +214,8 @@ names(bio_curr_CA) <- str_replace(string = names(bio_curr_CA),pattern = "wc2.1_2
 # let's also make the names of our variables easier to handle
 #names(bio_curr_CA) # exporting and importing changed the names so need to rename things
 #names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"Bioclim_clipped", "bio")
+
+
 
 
 # quick take a look at the data
@@ -211,13 +236,13 @@ plot(bio_curr_CA)
 
 
 #### . Extract the climate data for all of our species occurrences: ####
-qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
+qudo_clim <- raster::extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
   # note, we had to select Longitude and then Latitude, because R expects x, then y
 
 ## let's also extract a random set of points to characterize the available climate:
 set.seed(42)# Set the seed for the random-number generator to ensure results are similar
 # Randomly sample points (same number as our observed points)
-background <- randomPoints(mask = bio_curr_CA[[1]],     # Provides extent and resolution for sampling points, just takes the first bioclim variable
+background <- dismo::randomPoints(mask = bio_curr_CA[[1]],     # Provides extent and resolution for sampling points, just takes the first bioclim variable
                            n = nrow(qudo) * 2,      # Number of random points = n of our obs *2, just to make sure we're sampling climate space well
                            ext = geographic.extent) # geographic extent of sampling
 
@@ -253,8 +278,15 @@ plot(bio_1~bio_12 # formula of y~x using the variables we want to plot
 
 
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #__________ Question: Where to the limits to blue oak seem to be in climate space? ________________
 
+# [Think, Pair, Share]
+
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
@@ -271,8 +303,9 @@ points(bio_1~bio_12
        , col=blueoak.transp)
 
 
-
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #__________ Question: Does this change your answer to the question above? ________________
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
@@ -323,9 +356,13 @@ points(get(v1)~get(v2)
 ### . Build a species distribution model ####
 qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
 
-bc.model <- bioclim(x = bio_curr_CA, qudo %>% select(decimalLongitude, decimalLatitude))
+
+# fit the model (details about how this model is constructed can be found with ?bioclim)
+bc.model <- bioclim(x = bio_curr_CA, qudo %>% dplyr::select(decimalLongitude, decimalLatitude))
   # note, we're using the select() command with %>% 'piping' from the 'tidyverse' data wrangling set of packages
-  # details about how this model is constructed can be found with ?bioclim
+  # alternative way to do this woud be:
+# bc.model <- bioclim(x = bio_curr_CA, qudo[,c("decimalLongitude", "decimalLatitude")])
+
 
 ### . Predict suitable habitat in the domain ####
 qudo_pred <- dismo::predict(object=bc.model
@@ -361,7 +398,7 @@ qudofig <- tm_shape(bio_curr_CA[[1]])+
   tm_raster(style= "pretty",
             title="MAT")+
   tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% select(decimalLongitude, decimalLatitude))) + 
+  tm_shape(SpatialPoints(qudo %>% dplyr::select(decimalLongitude, decimalLatitude))) + 
   tm_dots()
 
 qudofig # plot the figure
@@ -371,7 +408,7 @@ predsfig <- tm_shape(qudo_pred)+
   tm_raster(style= "pretty",
             title="Suitable Habitat")+
   tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% select(decimalLongitude, decimalLatitude))) + 
+  tm_shape(SpatialPoints(qudo %>% dplyr::select(decimalLongitude, decimalLatitude))) + 
   tm_dots(col = blueoak)
 
 predsfig # plot the figure
@@ -380,7 +417,7 @@ predsfig # plot the figure
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-########### Q2: Why might blue oak not fill all of it's 'suitable habitat'? #########
+########### Q: Why might blue oak not fill all of it's 'suitable habitat'? #########
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
