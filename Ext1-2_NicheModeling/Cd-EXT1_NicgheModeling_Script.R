@@ -62,10 +62,8 @@ install.packages("RColorBrewer") # nice color palettes
 #library(rgdal)
 
 library(sp)
-
 library(tmap)
 library(tmaptools)
-
 library(dismo)
 library(raster)
 library(geodata)
