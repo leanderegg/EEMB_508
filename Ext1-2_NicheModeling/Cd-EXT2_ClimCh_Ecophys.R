@@ -32,8 +32,8 @@
 
 # 'load' installed packages so you have access to their functions
 library(dismo)
-library(maptools)
-library(rgdal)
+#library(maptools)
+#library(rgdal)
 library(raster)
 library(sp)
 library(rgbif)
@@ -203,7 +203,7 @@ bio_fut_CA <- crop(bio_fut, geographic.extent)
 
 # take a quick look at the climate projections
 plot(bio_fut_CA)
-
+plot(bio_curr_CA)
 # note: the variables are named differently in our two different climate raster stacks
 # that will be trouble if we leave it as is.
 names(bio_fut_CA)
@@ -352,19 +352,19 @@ qudo_fut <- dismo::predict(object=bc.model
 
 
 ### . Plot our model predictions ####
-plot(wrld_simpl, 
-     xlim = c(min.lon, max.lon),
-     ylim = c(min.lat, max.lat),
-     axes = TRUE, 
-     col = "grey65")
+# plot(wrld_simpl, 
+#      xlim = c(min.lon, max.lon),
+#      ylim = c(min.lat, max.lat),
+#      axes = TRUE, 
+#      col = "grey65")
 # Add model probabilities
 plot(qudo_pred, add = TRUE)
 
-plot(wrld_simpl, 
-     xlim = c(min.lon, max.lon),
-     ylim = c(min.lat, max.lat),
-     axes = TRUE, 
-     col = "grey65")
+# plot(wrld_simpl, 
+#      xlim = c(min.lon, max.lon),
+#      ylim = c(min.lat, max.lat),
+#      axes = TRUE, 
+#      col = "grey65")
 
 plot(qudo_fut)
 
@@ -483,7 +483,8 @@ fielddat <- cbind(fielddat, fielddat.clim)
 
 ### Example:
   # Mean Annual Temp does not predict water stress...
-plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
+plot(PD_WP_Mpa~bio_3, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
+
 
 # do some statistics to confirm this visual inference
   # fit a linear model with lm()
@@ -575,10 +576,15 @@ abline(mod1, lty = ifelse(test=summary(mod1)$coefficients[2,4]<0.05,yes = 1,no =
 
 
 
-
-
-
-
+## Or loop through all variables!
+require(lme4)
+for(i in c(1:19)) {
+  plot(PD_WP_Mpa~get(paste("bio",i,sep="_")), fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site), xlab=paste("bio_",i, sep=""))
+  mod <- lm(PD_WP_Mpa~get(paste("bio",i,sep="_")), fielddat)
+  # mod <- lmer(PD_WP_Mpa~get(paste("bio",i,sep="_")) + (1|Site), fielddat) # the true model we should fit
+  abline(mod, lty = ifelse(test=summary(mod)$coefficients[2,4]<0.05,yes = 1,no = 2))
+  mtext(text=paste("p = ",round(summary(mod)$coefficients[2,4],4)),side = 3)
+}
 
 
 
