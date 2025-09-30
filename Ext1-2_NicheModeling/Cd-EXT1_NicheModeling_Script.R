@@ -38,22 +38,31 @@
 
 # skip this if you've already installed these packages
   #spatial packages
-install.packages("terra")
-install.packages("dismo") # note: say "no" if it asks you to install things that need compiling
-#install.packages("maptools")
-#install.packages("rgdal")
-install.packages("raster")
-install.packages("sf")
 install.packages("sp")
 install.packages("tmap")
 install.packages("tmaptools")
+install.packages("dismo") # note: say "no" if it asks you to install things that need compiling
+install.packages("raster")
 install.packages("geodata")
 install.packages("rnaturalearth")
 install.packages("rnaturalearthdata")
-  # other packages
-install.packages("rgbif") #for using GBIF API through R
 install.packages("tidyverse") # data wrangling
+# other packages
+install.packages("rgbif") #for using GBIF API through R
 install.packages("RColorBrewer") # nice color palettes
+
+# possibly unnecessary packages
+install.packages("terra")
+#install.packages("maptools")
+#install.packages("rgdal")
+install.packages("sf")
+
+
+
+
+
+
+
 
 
 # 'load' installed packages so you have access to their functions
