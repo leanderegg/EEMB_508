@@ -81,7 +81,7 @@ library(rnaturalearth)
 library(tidyverse)
 library(rgbif)
 library(RColorBrewer)
-# note: you may get warning messages related to maptools and rgdal. just ignore them unless it says "ERROR"
+
 
 
 
@@ -103,16 +103,16 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
                      , limit=10000)
   # only grabbing occurrences with lat-lon and no location issues, in CA (because anything outside of CA is probably planted)
 qudo.raw <- occ_qudo$data # just select the data from that big list object
-nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23, 4412 as of 9.24.24)
+nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23, 4412 as of 9.24.24, 5322 as of 9.30.25)
 
 
 # --NOT RUN (versioning): For good versioning/internal reproducibility, it's wise to save a versioned, local copy of the data
-# write.csv(x = qudo.raw[,-grep("network", colnames(qudo.raw))], file = "Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2024-09-24.csv")
-  # note, with newest GBIF call, there are three columns $networkKeys.Length, $networkKeys.Class and $networkKeys.Mode that are lists of some sort
+# write.csv(x = qudo.raw[,-c(grep("network", colnames(qudo.raw)), grep("dna",colnames(qudo.raw)))], file = "Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2025-09-30.csv")
+  # note, with newest GBIF call, there are some columns that are lists of some sort
   # so we had to remove them in order to save as a .csv file
  
 # --NOT RUN (if problems): If GBIF server is down, internet sucks, or computers are slow, load old data
-# qudo.raw <- read.csv("Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2024-09-24.csv", header=T)
+# qudo.raw <- read.csv("Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2025-09-30.csv", header=T)
 
 
 
@@ -254,7 +254,7 @@ background <- dismo::randomPoints(mask = bio_curr_CA[[1]],     # Provides extent
                            ext = geographic.extent) # geographic extent of sampling
 
 # extract the climate variables for our random points
-background_clim <- data.frame(extract(bio_curr_CA, background))
+background_clim <- data.frame(raster::extract(bio_curr_CA, background))
 # quick visualize our random points
 plot(bio_curr_CA[[1]])
 points(background)
