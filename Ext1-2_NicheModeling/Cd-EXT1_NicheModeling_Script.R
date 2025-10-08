@@ -44,6 +44,7 @@ install.packages("tmaptools")
 install.packages("dismo") # note: say "no" if it asks you to install things that need compiling
 install.packages("raster")
 install.packages("geodata")
+install.packages("sf")
 install.packages("rnaturalearth")
 install.packages("rnaturalearthdata")
 install.packages("tidyverse") # data wrangling
@@ -53,9 +54,7 @@ install.packages("RColorBrewer") # nice color palettes
 
 # possibly unnecessary packages
 install.packages("terra")
-#install.packages("maptools")
-#install.packages("rgdal")
-install.packages("sf")
+
 
 
 
@@ -73,6 +72,7 @@ install.packages("sf")
 library(sp)
 library(tmap)
 library(tmaptools)
+library(st)
 library(dismo)
 library(raster)
 library(geodata)
@@ -185,7 +185,7 @@ points(x = qudo$decimalLongitude,
 bio_curr <- raster::stack(geodata::worldclim_global(var = "bio"
                              , res=2.5
                              , path="Ext1-2_NicheModeling/data/climate/"))
-  
+
 
 # We're downloading "WorldClim" global data, with three arguements:
 # - var = "bio" tells R that we want the 16 "bioclim" variables, which are temp, precip, and many combos thereof
@@ -361,7 +361,7 @@ points(get(v1)~get(v2)
 
 
 ### . Build a species distribution model ####
-qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
+qudo_clim <- raster::extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
 
 
 # fit the model (details about how this model is constructed can be found with ?bioclim)
@@ -386,7 +386,8 @@ plot(wrld_simpl,
      axes = TRUE, 
      col = "grey95")
 # Add model probabilities
-plot(qudo_pred, add = TRUE)
+
+plot(qudo_pred)
 
 # Add actual occurances
 points(decimalLatitude~decimalLongitude, qudo
@@ -408,16 +409,40 @@ qudofig <- tm_shape(bio_curr_CA[[1]])+
   tm_shape(SpatialPoints(qudo %>% dplyr::select(decimalLongitude, decimalLatitude))) + 
   tm_dots()
 
+# get our occurance data into a spatial format that tmap will handle:
+qudo_points <- st_as_sf(qudo, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+
+qudofig <- 
+  tm_shape(bio_curr_CA[[1]]) +
+  tm_raster(
+    col.scale = tm_scale_intervals(style = "pretty"),
+    col.legend = tm_legend(title = "Suitable Habitat")
+  ) +
+  tm_layout(legend.outside = TRUE) +
+  tm_shape(qudo_points) +
+  tm_symbols(
+    col = blueoak,
+    fill_alpha = 0.5,   # 0 = fully transparent, 1 = opaque
+    size = 0.5,
+    shape=16
+  )
+
 qudofig # plot the figure
 
 # make a figure of blue oak on our predicted suitability
-predsfig <- tm_shape(qudo_pred)+
-  tm_raster(style= "pretty",
-            title="Suitable Habitat")+
-  tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% dplyr::select(decimalLongitude, decimalLatitude))) + 
-  tm_dots(col = blueoak)
-
+predsfig <- tm_shape(qudo_pred) +
+  tm_raster(
+    col.scale = tm_scale_intervals(style = "pretty"),
+    col.legend = tm_legend(title = "Suitable Habitat")
+  ) +
+  tm_layout(legend.outside = TRUE) +
+  tm_shape(qudo_points) +
+  tm_symbols(
+      col = blueoak,
+      fill_alpha = 0.5,   # 0 = fully transparent, 1 = opaque
+      size = 0.5,
+      shape=16
+  )
 predsfig # plot the figure
 
 

@@ -28,6 +28,7 @@
 # install.packages("RColorBrewer")
 # install.packages("tmap")
 # install.packages("tmaptools")
+# install.packages("sf")
   # I commented these out because you all should have them installed already
 
 # 'load' installed packages so you have access to their functions
@@ -44,11 +45,12 @@ library(tmap)
 library(tmaptools)
 library(rnaturalearth)
 library(rnaturalearthdata)
+library(sf)
 # note: you may get warning messages related to maptools and rgdal. just ignore them unless it says "ERROR"
 
 
 
-version <- "20231012" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
+version <- "20251009" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
 
 
 
@@ -234,6 +236,7 @@ all.equal(names(bio_fut_CA), names(bio_curr_CA))
 
 
 
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ###### STEP 2: Look at projected changes in climate and oak distribution ############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -256,6 +259,10 @@ plot(pchange)
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ############## Q1: What do you notice about the spatial pattern of MAT & MAP change? ###############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
 
 
 
@@ -319,6 +326,9 @@ points(bio_1~bio_12
 
 
 
+
+
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ########## Step 2, project geographic shifts in suitable habitat with our CEM ######### 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -341,6 +351,8 @@ qudo_pred <- dismo::predict(object=bc.model
                             , ext= geographic.extent)
 # Note: the dismo::predict bit is to tell R to use the predict() function from the dismo package. Cause there are many predict() functions from many different packages, and whatever package was loaded last usually trumps all the others
 
+
+
 #____________________________________________________________________________
 ### . NOW Le'ts predict suitable habitat in 2080! #####################
 
@@ -351,6 +363,10 @@ qudo_fut <- dismo::predict(object=bc.model
 ### CODING QUESTIONS: What did we change and why does this simple function predict future blue oak disttributions?
 
 
+
+
+
+
 ### . Plot our model predictions ####
 # plot(wrld_simpl, 
 #      xlim = c(min.lon, max.lon),
@@ -358,7 +374,7 @@ qudo_fut <- dismo::predict(object=bc.model
 #      axes = TRUE, 
 #      col = "grey65")
 # Add model probabilities
-plot(qudo_pred, add = TRUE)
+plot(qudo_pred, add = FALSE)
 
 # plot(wrld_simpl, 
 #      xlim = c(min.lon, max.lon),
@@ -368,18 +384,29 @@ plot(qudo_pred, add = TRUE)
 
 plot(qudo_fut)
 
+######### Using the interactive map of tmap #############
 ### . Plot our model predictions with future climate ####
 # make a figure of blue oak on our predicted suitability
-tmap_mode("view")
-predsfig <- tm_shape(qudo_fut)+
-  tm_raster(style= "pretty",
-            title="Suitable Habitat")+
-  tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% select(decimalLongitude, decimalLatitude))) + 
-  tm_dots(col = blueoak)
+
+# first we have to change are occurance points to the sf spatial format. because...I don't know why
+qudo_points <- st_as_sf(qudo, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+  
+predsfig <- 
+  tm_shape(qudo_fut) +
+  tm_raster(
+    col.scale = tm_scale_intervals(style = "pretty"),
+    col.legend = tm_legend(title = "Suitable Habitat")
+  ) +
+  tm_layout(legend.outside = TRUE) +
+  tm_shape(qudo_points) +
+  tm_symbols(
+    col = blueoak,      
+    fill_alpha = 0.5,   # 0 = fully transparent, 1 = opaque
+    size = 0.5,
+    shape=16
+  )
 
 predsfig # plot the figure
-
 
 #_____________________________________________________________
 ######## . Map change in suitability ##########
@@ -389,15 +416,19 @@ qudo_change <- qudo_fut - qudo_pred
   # we can just subtract the present suitability from the future, and anything negative means decreased suitability (range contraction)
   # and anything positive means increased suitability (range expansion)
 # and quick plot it
-tm_shape(qudo_change)+
-  tm_raster(style= "pretty",
-            title="Suitable Habitat")+
-  tm_layout(legend.outside = T) 
 
+tm_shape(qudo_change) +
+  tm_raster(
+    col.scale = tm_scale_intervals(style = "pretty"),
+    col.legend = tm_legend(title = "Change in/nSuitable Habitat")
+  ) +
+  tm_layout(legend.outside = TRUE)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ############## Q3: Do you believe these dire predictions? ###############
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 
 
 
@@ -411,6 +442,8 @@ tm_shape(qudo_change)+
 # based on our exploration of the Q. douglasii climate niche last week, which physiological mechanisms
 # do you think constrain the fundamental niche, and what climatic changes will therefore cause range shifts,
 # particularly range contractions?
+
+
 
 
 
@@ -454,10 +487,10 @@ summary(fielddat)
 
 # let's see where these plots are (using our CEM as the background)
 tm_shape(qudo_pred)+
-  tm_raster(style= "pretty",
-            title="Suitable Habitat")+
+  tm_raster(    col.scale = tm_scale_intervals(style = "pretty"),
+                col.legend = tm_legend(title = "Change in/nSuitable Habitat"))+
   tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(fielddat %>% select(Lon, Lat))) + 
+  tm_shape(st_as_sf(fielddat, coords= c("Lon", "Lat"))) + 
   tm_dots(col = blueoak)
 
 
@@ -483,12 +516,14 @@ fielddat <- cbind(fielddat, fielddat.clim)
 
 ### Example:
   # Mean Annual Temp does not predict water stress...
-plot(PD_WP_Mpa~bio_3, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
+plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
 
 
 # do some statistics to confirm this visual inference
-  # fit a linear model with lm()
-mod1 <- lm(PD_WP_Mpa~bio_1, fielddat)
+  # fit a linear model with lm(), with the arguements being lm(Yvariable~Xvariable, dataframe)
+    # and the x and y variables are the same as your plot above
+mod1 <- lm()
+
   # look at the output
 summary(mod1)
 
@@ -504,6 +539,8 @@ mtext(text=paste("p=", round(summary(mod1)$coefficients[2,4], 2)), side = 3, adj
 ####### ADVANCED CHALLENGE: ###########
 # Can you make the trend line solid if the relationship is statistically significant (p<0.05)
 # and dotted if it is non-significant?
+
+
 
 
 
