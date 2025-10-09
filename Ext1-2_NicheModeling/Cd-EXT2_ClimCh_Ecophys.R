@@ -80,7 +80,9 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
 qudo.raw <- occ_qudo$data # just select the data from that big list object
 nrow(qudo.raw) # this many records were downloaded
 
-# write.csv(qudo.raw, paste("blue_oak_occurence_data",version,".csv"))
+# Not run: This code saves your qudo occurance data for replicability.
+  # note: GBIF has started including random columns that are actually lists. the [,-grep()] statement finds the weird ones (as of 10/2025) and removes them to keep this from throwing an error
+# write.csv(qudo.raw[,-c(grep("network", colnames(qudo.raw)), grep("dna",colnames(qudo.raw)))], paste("blue_oak_occurence_data",version,".csv"))
 
 ## Clean the data
 # a REALLY critical step with occurrence data
