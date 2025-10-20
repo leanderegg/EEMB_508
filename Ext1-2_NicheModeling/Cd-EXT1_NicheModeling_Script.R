@@ -45,6 +45,7 @@ install.packages("dismo") # note: say "no" if it asks you to install things that
 install.packages("raster")
 install.packages("geodata")
 install.packages("sf")
+install.packages("st")
 install.packages("rnaturalearth")
 install.packages("rnaturalearthdata")
 install.packages("tidyverse") # data wrangling

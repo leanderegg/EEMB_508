@@ -274,9 +274,11 @@ plot(pchange)
 
 ### (stuff we already did in last class)
 #### . Extract the climate data for all of our species occurrences: ####
-qudo_clim <- extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")])
+qudo_clim <- data.frame(raster::extract(bio_curr_CA, qudo[,c("decimalLongitude","decimalLatitude")]))
 # note, we had to select Longitude and then Latitude, because R expects x, then y
+# note2, we wrapped the whole thing in data.frame because the resulting object was weirdly a list, but forcing it into a data.frame fixes this
 
+qudo_clim_fut <- data.frame(raster::extract(bio_fut_CA, qudo[,c("decimalLongitude","decimalLatitude")]))
 
 
 #### . Extract random background points ####
@@ -287,10 +289,10 @@ background <- randomPoints(mask = bio_curr_CA[[1]],     # Provides extent and re
                            ext = geographic.extent) # geographic extent of sampling
 
 # extract the current climate variables for our random points
-background_clim <- data.frame(extract(bio_curr_CA, background))
+background_clim <- data.frame(raster::extract(bio_curr_CA, background))
 
 # extract the future climate variables for our background points
-background_fut <- data.frame(extract(bio_fut_CA, background))
+background_fut <- data.frame(raster::extract(bio_fut_CA, background))
 
 
 
@@ -306,7 +308,15 @@ points(bio_1~bio_12
        , data= background_fut
        , pch=16
        , col="#aa332222")
-## add in blue oaks
+
+
+###### . Visualize how blue oak's climate space is changing ####
+plot(bio_1~bio_12 # formula of the variables we're plotting
+     , data=background_clim # data where to find those variables
+     , xlab="Mean Annual Precip (mm)" # x axis label
+     , ylab="Mean Annual Temp (degrees C)" # y axis label
+     , pch=16 # point type (16=filled circle)
+     , col="#66666622") # point color, in a hexidecimal notation, which is #RRGGBB and then 2 digits for transparency so we don't overplot
 # let's make a specific color for blue oak
 blueoak <- brewer.pal("Set1",n=3)[2]
 blueoak.transp <- paste0(blueoak,"44") # and a transparent version
@@ -314,7 +324,10 @@ points(bio_1~bio_12
        , data=qudo_clim
        , pch=16
        , col=blueoak.transp)
-
+#let's add arrows showing where each blue oak occurance is headed in climate space
+arrows(x0 = qudo_clim$bio_12, y0= qudo_clim$bio_1, # arrows takes a starting x,y coord (current climate)
+       x1 = qudo_clim_fut$bio_12, y1=qudo_clim_fut$bio_1, # and an ending x,y coord for each arrow
+       length=0.05)
 
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -392,6 +405,8 @@ plot(qudo_fut)
 
 # first we have to change are occurance points to the sf spatial format. because...I don't know why
 qudo_points <- st_as_sf(qudo, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+
+tmap_mode("view")
   
 predsfig <- 
   tm_shape(qudo_fut) +
@@ -497,7 +512,7 @@ tm_shape(qudo_pred)+
 
 
 ####### . extract some climate data for these locations: 
-fielddat.clim <- extract(bio_curr_CA, fielddat[,c("Lon","Lat")])
+fielddat.clim <- raster::extract(bio_curr_CA, fielddat[,c("Lon","Lat")])
   # this extracts all of our climate data (Bio_1 through Bio_19)
   # and makes a new dataframe
 
@@ -518,13 +533,13 @@ fielddat <- cbind(fielddat, fielddat.clim)
 
 ### Example:
   # Mean Annual Temp does not predict water stress...
-plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
+plot(PD_WP_Mpa~bio_3, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
 
 
 # do some statistics to confirm this visual inference
   # fit a linear model with lm(), with the arguements being lm(Yvariable~Xvariable, dataframe)
     # and the x and y variables are the same as your plot above
-mod1 <- lm()
+mod1 <- lm(PD_WP_Mpa~bio_3, data=fielddat)
 
   # look at the output
 summary(mod1)
