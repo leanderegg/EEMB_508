@@ -78,7 +78,7 @@ library(dismo)
 library(raster)
 library(geodata)
 library(rnaturalearth)
-
+library(sf)
 library(tidyverse)
 library(rgbif)
 library(RColorBrewer)
@@ -104,11 +104,11 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
                      , limit=10000)
   # only grabbing occurrences with lat-lon and no location issues, in CA (because anything outside of CA is probably planted)
 qudo.raw <- occ_qudo$data # just select the data from that big list object
-nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23, 4412 as of 9.24.24, 5322 as of 9.30.25)
+nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23, 4412 as of 9.24.24, 5322 as of 9.30.25, 6336 as of 10.3.26)
 
 
 # --NOT RUN (versioning): For good versioning/internal reproducibility, it's wise to save a versioned, local copy of the data
-# write.csv(x = qudo.raw[,-c(grep("network", colnames(qudo.raw)), grep("dna",colnames(qudo.raw)))], file = "Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2025-09-30.csv")
+# write.csv(x = qudo.raw[,-c(grep("datasetCategory",colnames(qudo.raw)), grep("nucleotideSequence", colnames(qudo.raw)), grep("network", colnames(qudo.raw)), grep("dna",colnames(qudo.raw)))], file = "Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2026-10-04.csv")
   # note, with newest GBIF call, there are some columns that are lists of some sort
   # so we had to remove them in order to save as a .csv file
  
@@ -317,6 +317,7 @@ points(bio_1~bio_12
 
 
 
+
 #### .. choose 2 climate variables to plot ####
 v1 <- "bio_6" # the variable you want
 v1name <- "Min T of coldest Month" # it's actual meaning (for the axis)
@@ -402,13 +403,16 @@ points(decimalLatitude~decimalLongitude, qudo
 ###  use tmap to make interactive plots
 tmap_mode("view") # if we set this to "view" rather than "plot", we can make pretty maps that we can zoom around
 
-# make a figure of blue oak distribution on Mean Annual Temp background
-qudofig <- tm_shape(bio_curr_CA[[1]])+
-  tm_raster(style= "pretty",
-            title="MAT")+
-  tm_layout(legend.outside = T) +
-  tm_shape(SpatialPoints(qudo %>% dplyr::select(decimalLongitude, decimalLatitude))) + 
-  tm_dots()
+# # make a figure of blue oak distribution on Mean Annual Temp background
+# qudofig <- tm_shape(bio_curr_CA[[1]])+
+#   tm_raster(col.scale = tm_scale_intervals(style = "pretty"), 
+#             col.legend = tm_legend(title = "MAT", position = tm_pos_out("right", "top"))
+#   )+ 
+#     #        style= "pretty", # v3 tmap style that is now deprecated
+#     #        title="MAT")+
+#   # tm_layout(legend.outside = T) +
+#   tm_shape(SpatialPoints(qudo %>% dplyr::select(decimalLongitude, decimalLatitude))) + 
+#   tm_dots()
 
 # get our occurance data into a spatial format that tmap will handle:
 qudo_points <- st_as_sf(qudo, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
@@ -417,7 +421,7 @@ qudofig <-
   tm_shape(bio_curr_CA[[1]]) +
   tm_raster(
     col.scale = tm_scale_intervals(style = "pretty"),
-    col.legend = tm_legend(title = "Suitable Habitat")
+    col.legend = tm_legend(title = "Mean Annual Temp")
   ) +
   tm_layout(legend.outside = TRUE) +
   tm_shape(qudo_points) +
@@ -481,7 +485,7 @@ dups <- duplicated(quke.raw %>% select(decimalLatitude, decimalLongitude))
 sum(dups) # number of duplicate records (which would incorrectly weight their locations in the model)
 quke<- quke.raw[!dups,] # remove the duplicates using the ! (NOT) boolian function
 ## Extract the climate data for all of our species occurances:
-quke_clim <- extract(bio_curr_CA, quke[,c("decimalLongitude","decimalLatitude")])
+quke_clim <- raster::extract(bio_curr_CA, quke[,c("decimalLongitude","decimalLatitude")])
 
 # let's make a specific color for black oak
 blackoak <- brewer.pal("Set1",n=3)[3]
