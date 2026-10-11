@@ -14,7 +14,7 @@
 
 
 
-###### Getting started: Install/Load Packages ############
+###### *Getting started: Install/Load Packages ############
 
 # # skip this if you've already installed these packages
 # install.packages("dismo") # note: say "no" if it asks you to install things that need compiling
@@ -50,7 +50,7 @@ library(sf)
 
 
 
-version <- "20251009" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
+version <- "20261012" # set a version for saving files. Versioning your s&#! will save you many headaches in the future
 
 
 
@@ -80,9 +80,23 @@ occ_qudo <- occ_data(scientificName = "Quercus douglasii"
 qudo.raw <- occ_qudo$data # just select the data from that big list object
 nrow(qudo.raw) # this many records were downloaded
 
-# Not run: This code saves your qudo occurance data for replicability.
-  # note: GBIF has started including random columns that are actually lists. the [,-grep()] statement finds the weird ones (as of 10/2025) and removes them to keep this from throwing an error
-# write.csv(qudo.raw[,-c(grep("network", colnames(qudo.raw)), grep("dna",colnames(qudo.raw)))], paste("blue_oak_occurence_data",version,".csv"))
+
+
+#________________________________________________________
+#### . . If API isn't working, load local version: #####
+# two options:
+#1) If your file structure is preserved from github, 
+#   and you have [your working directory]/data/
+#   run THIS:
+qudo.raw <- read.csv("Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2026-10-04.csv", header=T)
+
+#2) If you have no 'data' folder in your working directory
+#   you can manually find the "GBIF_Quercusdouglasii_2026-10-04.csv" file
+#   by running THIS:
+qudo.raw <- read.csv(file.choose(), header=T)
+#__________________________________________________________
+
+
 
 ## Clean the data
 # a REALLY critical step with occurrence data
@@ -95,7 +109,7 @@ qudo<- qudo.raw[!dups,] # remove the duplicates using the ! (NOT) boolian functi
 
 
 # If you want to export your data version, so this code is perfectly replicable even if new obs get added to GBIF, you could do that
-#write.csv(x = qudo, file = paste0("Ext1-2_NicheModeling/data/", "Quercus_douglasii_gbif_v", version,".csv"))
+#write.csv(x = qudo[,-c(grep("datasetCategory",colnames(qudo)), grep("nucleotideSequence", colnames(qudo)), grep("network", colnames(qudo)), grep("dna",colnames(qudo)))], file = paste0("Ext1-2_NicheModeling/data/", "Quercus_douglasii_gbif_v", version,".csv"))
   # this makes a file name with an automated versioning based on the name you set above and stores it in the 'data' folder
 
 
@@ -104,11 +118,13 @@ qudo<- qudo.raw[!dups,] # remove the duplicates using the ! (NOT) boolian functi
 wrld_simpl <- ne_coastline() # download a simple world map for visualization (frome the Naturalearth project)
 
 # Determine geographic extent of our data (and pad a little)
-max.lat <- ceiling(max(qudo$decimalLatitude) + 3)
-min.lat <- floor(min(qudo$decimalLatitude) - 3)
-max.lon <- ceiling(max(qudo$decimalLongitude) + 3)
-min.lon <- floor(min(qudo$decimalLongitude) - 3)
+max.lat <- ceiling(max(qudo$decimalLatitude) + 1)
+min.lat <- floor(min(qudo$decimalLatitude) - 1)
+max.lon <- ceiling(max(qudo$decimalLongitude) + 1)
+min.lon <- floor(min(qudo$decimalLongitude) - 1)
 geographic.extent <- extent(x = c(min.lon, max.lon, min.lat, max.lat))
+
+
 
 
 #### . Load modern climate data #####
@@ -145,16 +161,18 @@ names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"wc2.1_2.5m_","")
 
 
 ### in case server is down (has happened before)
-#raster::writeRaster(bio_curr_CA,filename = "Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff",filetype="GTiff", overwrite=T)
+# raster::writeRaster(bio_curr_CA,filename = "Ext1-2_NicheModeling/data/Bioclim_clipped.tiff",filetype="GTiff", overwrite=T)
 # This exports the cropped bioclim to a geotiff so I can send it to y'all
 
+#________________________________________________________
+#### . . If API is down: Load Raster Stack ################
 # read in the cropped raster brick from my exported geotiff:
-#bio_curr_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_clipped.tiff")
+#bio_curr_CA <- brick("Ext1-2_NicheModeling/data/Bioclim_clipped.tiff")
 
 # let's also make the names of our variables easier to handle
 #names(bio_curr_CA) # exporting and importing changed the names so need to rename things
 #names(bio_curr_CA) <- str_replace(names(bio_curr_CA),"Bioclim_clipped", "bio")
-
+#___________________________________________________________
 
 
 
@@ -191,16 +209,19 @@ bio_fut_CA <- crop(bio_fut, geographic.extent)
 
 
 ### in case server is down (has happened before)
-# raster::writeRaster(bio_fut_CA,filename = "Ext1-2_NicheModeling/data/climate/Bioclim_future_clipped.tiff",filetype="GTiff", overwrite=T)
+# raster::writeRaster(bio_fut_CA,filename = "Ext1-2_NicheModeling/data/Bioclim_future_clipped.tiff",filetype="GTiff", overwrite=T)
 # This exports the cropped bioclim to a geotiff so I can send it to y'all
 
+#________________________________________________________
+#### . . If API is down: Load Raster Stack ################
+
 # read in the cropped raster brick from my exported geotiff:
-# bio_fut_CA <- brick("Ext1-2_NicheModeling/data/climate/Bioclim_future_clipped.tiff")
+# bio_fut_CA <- brick("Ext1-2_NicheModeling/data/Bioclim_future_clipped.tiff")
 
 # let's also make the names of our variables easier to handle
 #names(bio_fut_CA) # exporting and importing changed the names so need to rename things
 #names(bio_fut_CA) <- str_replace(names(bio_curr_CA),"Bioclim_future_clipped", "bio")
-
+#_________________________________________________________________
 
 
 
@@ -307,7 +328,7 @@ plot(bio_1~bio_12 # formula of the variables we're plotting
 points(bio_1~bio_12
        , data= background_fut
        , pch=16
-       , col="#aa332222")
+       , col="#aa332211")
 
 
 ###### . Visualize how blue oak's climate space is changing ####
@@ -409,6 +430,11 @@ qudo_points <- st_as_sf(qudo, coords = c("decimalLongitude", "decimalLatitude"),
 tmap_mode("view")
   
 predsfig <- 
+  tm_shape(qudo_pred) +
+  tm_raster(
+    col.scale = tm_scale_intervals(style = "pretty"),
+    col.legend = tm_legend(title = "Suitable Habitat")
+  ) +
   tm_shape(qudo_fut) +
   tm_raster(
     col.scale = tm_scale_intervals(style = "pretty"),
@@ -533,13 +559,13 @@ fielddat <- cbind(fielddat, fielddat.clim)
 
 ### Example:
   # Mean Annual Temp does not predict water stress...
-plot(PD_WP_Mpa~bio_3, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
+plot(PD_WP_Mpa~bio_1, fielddat, ylab="Water Potential_PD (MPa)", col=factor(Site))
 
 
 # do some statistics to confirm this visual inference
   # fit a linear model with lm(), with the arguements being lm(Yvariable~Xvariable, dataframe)
     # and the x and y variables are the same as your plot above
-mod1 <- lm(PD_WP_Mpa~bio_3, data=fielddat)
+mod1 <- lm(PD_WP_Mpa~bio_1, data=fielddat)
 
   # look at the output
 summary(mod1)
@@ -570,8 +596,8 @@ mtext(text=paste("p=", round(summary(mod1)$coefficients[2,4], 2)), side = 3, adj
 
 
 # First extract our 'predicted suitability' for each of our field locations
-fielddat$suit_curr <- extract(qudo_pred, fielddat[,c("Lon","Lat")])
-fielddat$suit_fut <- extract(qudo_fut, fielddat[,c("Lon","Lat")])
+fielddat$suit_curr <- raster::extract(qudo_pred, fielddat[,c("Lon","Lat")])
+fielddat$suit_fut <- raster::extract(qudo_fut, fielddat[,c("Lon","Lat")])
 
 
 

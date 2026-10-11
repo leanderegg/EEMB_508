@@ -113,7 +113,7 @@ nrow(qudo.raw) # this many records were downloaded (3486 as of 9.26.23, 4412 as 
   # so we had to remove them in order to save as a .csv file
  
 # --NOT RUN (if problems): If GBIF server is down, internet sucks, or computers are slow, load old data
-# qudo.raw <- read.csv("Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2025-09-30.csv", header=T)
+# qudo.raw <- read.csv("Ext1-2_NicheModeling/data/GBIF_Quercusdouglasii_2026-10-04.csv", header=T)
 
 
 
@@ -142,10 +142,10 @@ points(qudo$decimalLatitude~qudo$decimalLongitude)
 # but this is REAL zoomed out. let's zoom in a little
 
 # Determine geographic extent of our data (and padd a little)
-max.lat <- ceiling(max(qudo$decimalLatitude) + 3)
-min.lat <- floor(min(qudo$decimalLatitude) - 3)
-max.lon <- ceiling(max(qudo$decimalLongitude) + 3)
-min.lon <- floor(min(qudo$decimalLongitude) - 3)
+max.lat <- ceiling(max(qudo$decimalLatitude) + 1)
+min.lat <- floor(min(qudo$decimalLatitude) - 1)
+max.lon <- ceiling(max(qudo$decimalLongitude) + 1)
+min.lon <- floor(min(qudo$decimalLongitude) - 1)
 geographic.extent <- raster::extent(x = c(min.lon, max.lon, min.lat, max.lat))
 # Note: I'm calling functions specifically from packages using the [package]::[function] nomenclature, because spatial packages in R just went through a major revamp and shit got complicated
 
@@ -181,11 +181,11 @@ points(x = qudo$decimalLongitude,
 
 # we're going to download gridded global climate data (temperature and precip)
 # from the 'WorldClim2' dataset, because it's easy. Other gridded climate data are
-# probably better, depending on your application and location, but you can't beat Worldclim for ease of use.
-
+# probably better, depending on your application and location, but you can't beat Worldclim for ease of use
+dir()
 bio_curr <- raster::stack(geodata::worldclim_global(var = "bio"
                              , res=2.5
-                             , path="Ext1-2_NicheModeling/data/climate/"))
+                             , path="data/"))
 
 
 # We're downloading "WorldClim" global data, with three arguements:
@@ -284,6 +284,8 @@ plot(bio_1~bio_12 # formula of y~x using the variables we want to plot
      , col=blueoak.transp # set the color of our oaks to our bespoke transparent blue
      )
 
+points(bio_1~bio_12 # formula of y~x using the variables we want to plot
+       , data = qudo_clim[which(qudo$year<2010),], pch=".")
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -309,6 +311,8 @@ points(bio_1~bio_12
        , data=qudo_clim
        , pch=16
        , col=blueoak.transp)
+points(bio_1~bio_12 # formula of y~x using the variables we want to plot
+       , data = qudo_clim[which(qudo$year<2010),], pch=".")
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -319,10 +323,10 @@ points(bio_1~bio_12
 
 
 #### .. choose 2 climate variables to plot ####
-v1 <- "bio_6" # the variable you want
-v1name <- "Min T of coldest Month" # it's actual meaning (for the axis)
-v2 <- "bio_12"
-v2name <- "precip"
+v1 <- "bio_14" # the variable you want
+v1name <- "Temp seasonality"# "Min T of coldest Month" # it's actual meaning (for the axis)
+v2 <- "bio_15"
+v2name <- "precip seasonality"
 
 plot(get(v1)~get(v2) # formula of the variables we're plotting
      , data=background_clim # data where to find those variables
@@ -471,6 +475,7 @@ predsfig # plot the figure
 
 #___________________________________________________________________________________
 ### . Bringing in another species
+
 
 # download occurrence records from GBIF for black oak, Quercus kelloggii
 occ_quke <- occ_data(scientificName = "Quercus kelloggii"
